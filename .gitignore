@@ -1,3 +1,4 @@
 siamese-cnns/.ropeproject/
-siamese-cnns/*.swp
-siamese-cnns/*.swo
+*.swp
+*.swo
+*.pyc

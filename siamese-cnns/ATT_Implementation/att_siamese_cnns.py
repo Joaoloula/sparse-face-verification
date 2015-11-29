@@ -7,7 +7,7 @@ from eer import eer
 # import numpy as np
 
 # Setting global variables
-max_steps = 20000
+# max_steps = 20000
 pairs_per_batch = 100
 A = 1.7159
 B = 2./3.
@@ -138,7 +138,8 @@ train_step = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 sess.run(tf.initialize_all_variables())
 
-for step in xrange(max_steps):
+step = 1
+while 1:
     start_time = time.time()
     batch = random.sample(train_set, pairs_per_batch)
     # train_set: list with [[face1, label1], [face2, label2]]
@@ -161,16 +162,17 @@ for step in xrange(max_steps):
         # hits_misses = [int(threshold[i] == Y[i]) for i in range(len(Y))]
         # print np.where(np.asarray(hits_misses) == 0)[0]
         summary_writer.add_summary(summary_str, step)
-    if step % 510 == 0:  # Completed epoch
+    if step % 1000 == 0:
+        # Decay learning rate up to 10^-6
         if learning_rate > 1e-6:
             learning_rate *= decay_rate
-    if step % 1000 == 0:
-        batch = random.sample(test_set, 1000)
+        # Evaluate with test set
         [X1, X2, Y] = [[], [], []]
-        for i in range(1000):
-            X1.append(batch[i][0][0])
-            X2.append(batch[i][1][0])
-            Y.append(int(batch[i][0][1] != batch[i][1][1]))
+        for i in range(len(test_set)):
+            X1.append(test_set[i][0][0])
+            X2.append(test_set[i][1][0])
+            Y.append(int(test_set[i][0][1] != test_set[i][1][1]))
         energy_value = sess.run([energy], feed_dict={x1: X1, x2: X2, y_: Y})
         error = eer(energy_value[0], Y)
         print error
+    step += 1
