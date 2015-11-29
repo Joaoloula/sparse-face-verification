@@ -1,5 +1,8 @@
 import numpy as np
 
+max_threshold = 200  # Maximum threshold for energy
+step = 1             # Step for FAR and FRR computation
+
 
 def far_and_frr(scores, labels, threshold):
     # Given a scores array, a labels array and a threshold, computes the false
@@ -32,10 +35,10 @@ def far_and_frr(scores, labels, threshold):
 
 def eer(scores, labels):
     # Calculates the EER from an array of scores and the true labels
-    [mean, difference] = [[], []]
-    for i in np.arange(0, 40, 1):
+    [mean, difference] = [0.5, 1.0]
+    for i in np.arange(0, max_threshold, step):
         [far, frr] = far_and_frr(scores, labels, i)
-        mean.append((far+frr)/2)
-        difference.append(abs(far-frr))
-    index = difference.index(min(difference))
-    return mean[index]
+        if abs(far-frr) < difference:
+            difference = abs(far-frr)
+            mean = (far+frr)/2
+    return mean

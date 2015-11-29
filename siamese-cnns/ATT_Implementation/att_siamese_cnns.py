@@ -9,9 +9,11 @@ from eer import eer
 # Setting global variables
 max_steps = 20000
 pairs_per_batch = 100
+A = 1.7159
+B = 2./3.
 
 # Setting up train and test sets
-[train_set, test_set] = pickle.load(open("train_test_split", "rb"))
+[train_set, test_set] = pickle.load(open("train_test_random", "rb"))
 
 sess = tf.InteractiveSession()
 
@@ -86,20 +88,20 @@ W_fc2 = weight_variable([60, 40], 'W_fc2')
 b_fc2 = bias_variable([40], 'b_fc2')
 
 # Layer ops
-h1_conv1 = tf.sigmoid(conv2d(x1_image, W_conv1) + b_conv1)
-h2_conv1 = tf.sigmoid(conv2d(x2_image, W_conv1) + b_conv1)
+h1_conv1 = A * tf.tanh(B * (conv2d(x1_image, W_conv1) + b_conv1))
+h2_conv1 = A * tf.tanh(B * (conv2d(x2_image, W_conv1) + b_conv1))
 
-h1_conv2 = tf.sigmoid(conv2d(h1_conv1, W_conv2) + b_conv2)
-h2_conv2 = tf.sigmoid(conv2d(h2_conv1, W_conv2) + b_conv2)
+h1_conv2 = A * tf.tanh(B * (conv2d(h1_conv1, W_conv2) + b_conv2))
+h2_conv2 = A * tf.tanh(B * (conv2d(h2_conv1, W_conv2) + b_conv2))
 
 h1_pool2_flat1 = tf.reshape(h1_conv2, [-1, 16*16*14])
-h1_fc1 = tf.sigmoid(tf.matmul(h1_pool2_flat1, W_fc1)+b_fc1)
+h1_fc1 = A * tf.tanh(B * (tf.matmul(h1_pool2_flat1, W_fc1)+b_fc1))
 
 h2_pool2_flat1 = tf.reshape(h2_conv2, [-1, 16*16*14])
-h2_fc1 = tf.sigmoid(tf.matmul(h2_pool2_flat1, W_fc1)+b_fc1)
+h2_fc1 = A * tf.tanh(B * (tf.matmul(h2_pool2_flat1, W_fc1)+b_fc1))
 
-h1_fc2 = tf.sigmoid(tf.matmul(h1_fc1, W_fc2)+b_fc2)
-h2_fc2 = tf.sigmoid(tf.matmul(h2_fc1, W_fc2)+b_fc2)
+h1_fc2 = A * tf.tanh(B * (tf.matmul(h1_fc1, W_fc2)+b_fc2))
+h2_fc2 = A * tf.tanh(B * (tf.matmul(h2_fc1, W_fc2)+b_fc2))
 
 # Normalization of the outputs, for now we use pre-treatment normalization
 # and Q factor below
@@ -113,7 +115,7 @@ h2_fc2 = tf.sigmoid(tf.matmul(h2_fc1, W_fc2)+b_fc2)
 absolute_difference = tf.abs(tf.sub(h1_fc2, h2_fc2))
 energy = tf.reduce_sum(absolute_difference, reduction_indices=1, name='energy')
 loss1 = (2/40) * tf.mul(tf.sub(1., y), tf.square(energy))
-loss2 = 2 * tf.mul(y, tf.exp((-2.7726/40) * energy))
+loss2 = 2 * 40 * tf.mul(y, tf.exp((-2.7726/40) * energy))
 loss = tf.reduce_sum(loss1 + loss2)
 
 
@@ -163,12 +165,12 @@ for step in xrange(max_steps):
         if learning_rate > 1e-6:
             learning_rate *= decay_rate
     if step % 1000 == 0:
-        # batch = random.sample(test_set, 1000)
+        batch = random.sample(test_set, 1000)
         [X1, X2, Y] = [[], [], []]
-        for i in range(len(test_set)):
-            X1.append(test_set[i][0][0])
-            X2.append(test_set[i][1][0])
-            Y.append(int(test_set[i][0][1] != test_set[i][1][1]))
+        for i in range(1000):
+            X1.append(batch[i][0][0])
+            X2.append(batch[i][1][0])
+            Y.append(int(batch[i][0][1] != batch[i][1][1]))
         energy_value = sess.run([energy], feed_dict={x1: X1, x2: X2, y_: Y})
         error = eer(energy_value[0], Y)
         print error
