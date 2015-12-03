@@ -19,14 +19,14 @@ for i in range(40):
         )
 
 # Random version
-pairs = list(itertools.combinations(faces_and_labels, 2))
-np.random.shuffle(pairs)
-[train_random, test_random] = [pairs[1:70001], pairs[70001:]]
-pickle.dump([train_random, test_random], open('train_test_random', 'w'))
+# pairs = list(itertools.combinations(faces_and_labels, 2))
+# np.random.shuffle(pairs)
+# [train_random, test_random] = [pairs[1:70001], pairs[70001:]]
+# pickle.dump([train_random, test_random], open('train_test_random', 'w'))
 
 # Split version (siamese paper)
-# train_faces = faces_and_labels[1:321]
-# test_faces = faces_and_labels[321:361]
-# train_split = list(itertools.combinations(train_faces, 2))
-# test_split = list(itertools.combinations(test_faces, 2))
-# pickle.dump([train_split, test_split], open('train_test_split', 'w'))
+train_faces = faces_and_labels[1:361]
+test_faces = faces_and_labels[361:401]
+train_split = list(itertools.combinations(train_faces, 2))
+test_split = list(itertools.combinations(test_faces, 2))
+pickle.dump([train_split, test_split], open('train_test_split', 'w'))

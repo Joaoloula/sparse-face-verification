@@ -1,3 +1,5 @@
+# Benchmarks: 2.8 EER after 8 hours of training for random dataset
+
 import tensorflow as tf
 import random
 import pickle
@@ -13,7 +15,7 @@ A = 1.7159
 B = 2./3.
 
 # Setting up train and test sets
-[train_set, test_set] = pickle.load(open("train_test_random", "rb"))
+[train_set, test_set] = pickle.load(open("train_test_split", "rb"))
 
 sess = tf.InteractiveSession()
 
@@ -37,7 +39,7 @@ def bias_variable(form, name):
 
 
 def conv2d(x, W):
-    return tf.nn.conv2d(x, W, strides=[1, 2, 2, 1], padding='SAME')
+    return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
 
 
 # Unused for the moment, fused convolutional and sampling layer implementation
@@ -81,38 +83,37 @@ b_conv1 = bias_variable([5], 'b_conv1')
 W_conv2 = weight_variable([6, 6, 5, 14], 'W_conv2')
 b_conv2 = bias_variable([14], 'b_conv2')
 
-W_fc1 = weight_variable([16 * 16 * 14, 60], 'W_fc1')
-b_fc1 = bias_variable([60], 'b_fc1')
+W_conv3 = weight_variable([6, 6, 14, 60], 'W_conv3')
+b_conv3 = bias_variable([60], 'b_conv3')
 
-W_fc2 = weight_variable([60, 40], 'W_fc2')
-b_fc2 = bias_variable([40], 'b_fc2')
+W_fcl = weight_variable([16*16*60, 40], 'W_fc2')
+b_fcl = bias_variable([40], 'b_fc2')
 
 # Layer ops
 h1_conv1 = A * tf.tanh(B * (conv2d(x1_image, W_conv1) + b_conv1))
 h2_conv1 = A * tf.tanh(B * (conv2d(x2_image, W_conv1) + b_conv1))
 
-h1_conv2 = A * tf.tanh(B * (conv2d(h1_conv1, W_conv2) + b_conv2))
-h2_conv2 = A * tf.tanh(B * (conv2d(h2_conv1, W_conv2) + b_conv2))
+maxconv1_1 = max_pool_2x2(h1_conv1)
+maxconv1_2 = max_pool_2x2(h2_conv1)
 
-h1_pool2_flat1 = tf.reshape(h1_conv2, [-1, 16*16*14])
-h1_fc1 = A * tf.tanh(B * (tf.matmul(h1_pool2_flat1, W_fc1)+b_fc1))
+h1_conv2 = A * tf.tanh(B * (conv2d(maxconv1_1, W_conv2) + b_conv2))
+h2_conv2 = A * tf.tanh(B * (conv2d(maxconv1_2, W_conv2) + b_conv2))
 
-h2_pool2_flat1 = tf.reshape(h2_conv2, [-1, 16*16*14])
-h2_fc1 = A * tf.tanh(B * (tf.matmul(h2_pool2_flat1, W_fc1)+b_fc1))
+maxconv2_1 = max_pool_2x2(h1_conv2)
+maxconv2_2 = max_pool_2x2(h2_conv2)
 
-h1_fc2 = A * tf.tanh(B * (tf.matmul(h1_fc1, W_fc2)+b_fc2))
-h2_fc2 = A * tf.tanh(B * (tf.matmul(h2_fc1, W_fc2)+b_fc2))
+h1_conv3 = A * tf.tanh(B * (conv2d(maxconv2_1, W_conv3)+b_conv3))
+h2_conv3 = A * tf.tanh(B * (conv2d(maxconv2_2, W_conv3)+b_conv3))
 
-# Normalization of the outputs, for now we use pre-treatment normalization
-# and Q factor below
-# normal_out1 = tf.transpose(tf.div(tf.transpose(h1_fc2), tf.reduce_sum(
-#                            tf.abs(h1_fc2), reduction_indices=1)))
-# normal_out2 = tf.transpose(tf.div(tf.transpose(h2_fc2), tf.reduce_sum(
-#                            tf.abs(h2_fc2), reduction_indices=1)))
+h1_flat = tf.reshape(h1_conv3, [-1, 16*16*60])
+h2_flat = tf.reshape(h2_conv3, [-1, 16*16*60])
+
+h1_fcl = A * tf.tanh(B * (tf.matmul(h1_flat, W_fcl)+b_fcl))
+h2_fcl = A * tf.tanh(B * (tf.matmul(h2_flat, W_fcl)+b_fcl))
 
 # LOSS
 # Normalized absolute difference
-absolute_difference = tf.abs(tf.sub(h1_fc2, h2_fc2))
+absolute_difference = tf.abs(tf.sub(h1_fcl, h2_fcl))
 energy = tf.reduce_sum(absolute_difference, reduction_indices=1, name='energy')
 loss1 = (2/40) * tf.mul(tf.sub(1., y), tf.square(energy))
 loss2 = 2 * 40 * tf.mul(y, tf.exp((-2.7726/40) * energy))
@@ -120,9 +121,9 @@ loss = tf.reduce_sum(loss1 + loss2)
 
 
 # SUMMARIES
-tensors = [W_conv1, b_conv1, W_conv2, b_conv2, W_fc1, b_fc1, W_fc2, b_fc2]
-tensornames = ['W_conv1', 'b_conv1', 'W_conv2', 'b_conv2', 'W_fc1', 'b_fc1',
-               'W_fc2', 'b_fc2']
+tensors = [W_conv1, b_conv1, W_conv2, b_conv2, W_conv3, b_conv3, W_fcl, b_fcl]
+tensornames = ['W_conv1', 'b_conv1', 'W_conv2', 'b_conv2', 'W_conv3', 'b_conv3',
+               'W_fcl', 'b_fcl']
 for i in range(8):
     tf.histogram_summary(tensornames[i], tensors[i], name=tensornames[i])
 
