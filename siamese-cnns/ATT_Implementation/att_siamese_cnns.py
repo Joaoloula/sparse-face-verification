@@ -1,5 +1,5 @@
 # Benchmarks: 2.8 EER after 8 hours of training for random dataset
-
+# 22 EER after 8 hours for split dataset!!!
 import tensorflow as tf
 import random
 import pickle

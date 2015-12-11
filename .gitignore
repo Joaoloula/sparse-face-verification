@@ -1,4 +1,8 @@
 siamese-cnns/.ropeproject/
+deepid/facescrub/
+deepid/fs_labeled/
+deepid/facescrub_labeled
+deepid/facescrub_fails
 *.swp
 *.swo
 *.pyc
