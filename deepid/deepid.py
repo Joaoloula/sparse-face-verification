@@ -1,3 +1,5 @@
+# DeepID implementation on tensorflow
+
 import tensorflow as tf
 import random
 import pickle
@@ -20,9 +22,8 @@ sess = tf.InteractiveSession()
 x = tf.placeholder("float", shape=[None, 32, 32])
 y_ = tf.placeholder("float", shape=[None, 530])
 
+
 # Functions for creating weight, bias, convolution and max-pooling
-
-
 def weight_variable(form, name):
     initial = tf.truncated_normal(form, stddev=.1)
     return tf.Variable(initial, name=name)
@@ -37,13 +38,19 @@ def conv2d(x, W):
     return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
 
 
-# Unused for the moment, fused convolutional and sampling layer implementation
 def max_pool_2x2(x):
     return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1],
                           padding='SAME')
 
+
+def normalize(tensor, size):
+    # Local response linearization: parameterers can be tweaked
+    return tf.nn.lrn(tensor, size, bias=1.0, alpha=0.001 / 9.0, beta=0.75)
+
+
 # Model: Siamese CNNs + energy module
-# CNN Architecture: 2 fused conv and sampling layers + 2 fully-connected layers
+# CNN Architecture: 4 convolution layers with max-pooling in between +
+# one DeepID layer + 1 softmax output layer
 
 # Reshape image and label placeholders
 x_image = tf.reshape(x, [-1, 32, 32, 1])
@@ -70,16 +77,20 @@ W_fcl = weight_variable([160, 530], 'W_fcl')
 b_fcl = bias_variable([530], 'b_fcl')
 
 # Layer ops
-conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
+conv1 = tf.nn.relu(conv2d(x_image, W_conv1)+b_conv1)
 max_pool1 = max_pool_2x2(conv1)
+max_pool1 = normalize(max_pool1, 4)
 
-conv2 = tf.nn.relu(conv2d(max_pool1, W_conv2) + b_conv2)
+conv2 = tf.nn.relu(conv2d(max_pool1, W_conv2)+b_conv2)
 max_pool2 = max_pool_2x2(conv2)
+max_pool2 = normalize(max_pool2, 4)
 
 conv3 = tf.nn.relu(conv2d(max_pool2, W_conv3)+b_conv3)
 max_pool3 = max_pool_2x2(conv3)
+max_pool3 = normalize(max_pool3, 4)
 
 conv4 = tf.nn.relu(conv2d(max_pool3, W_conv4)+b_conv4)
+conv4 = normalize(conv4, 4)
 
 conv3_flat = tf.reshape(conv3, [-1, 8*8*60])
 conv4_flat = tf.reshape(conv4, [-1, 4*4*80])
@@ -87,11 +98,12 @@ conv4_flat = tf.reshape(conv4, [-1, 4*4*80])
 deepid = tf.nn.relu(tf.matmul(conv3_flat, W_deepid_conv3) +
                     tf.matmul(conv4_flat, W_deepid_conv4) +
                     b_deepid)
+# deepid = normalize(deepid, 4)
 
-softmax = tf.nn.softmax(tf.matmul(deepid, W_fcl) + b_fcl)
+softmax = tf.nn.softmax(tf.matmul(deepid, W_fcl)+b_fcl)
 
 # LOSS
-loss = -tf.reduce_sum(tf.log(tf.mul(softmax, y)+1e-4))
+loss = -tf.reduce_sum(tf.log(tf.reduce_sum(tf.mul(softmax, y), 1)))
 
 # ACCURACY
 correct_prediction = tf.equal(tf.argmax(y, 1), tf.argmax(softmax, 1))
@@ -112,9 +124,9 @@ merged_summary_op = tf.merge_all_summaries()
 summary_writer = tf.train.SummaryWriter('/tmp/att_siamese_cnns', sess.graph_def)
 
 # TRAINING
-decay_rate = 1
+decay_rate = 1  # First tests without decay
 learning_rate = tf.Variable(0.01)
-train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(loss)
+train_step = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 sess.run(tf.initialize_all_variables())
 

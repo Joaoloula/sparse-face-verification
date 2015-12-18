@@ -80,7 +80,7 @@ for i in xrange(total_img_number):
 
 # Shuffle the dataset and split it into train and test
 shuffle(image_labels)
-[train, test] = [image_labels[:80000], image_labels[80001:]]
+[train, test] = [image_labels[:65000], image_labels[65000:]]
 
 # Save dataset
 pickle.dump([train, test], open('facescrub_labeled', 'w'))

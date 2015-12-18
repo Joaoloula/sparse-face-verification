@@ -3,6 +3,9 @@ deepid/facescrub/
 deepid/fs_labeled/
 deepid/facescrub_labeled
 deepid/facescrub_fails
+deepid/fake_data
+deepid/fake_data_centered
+deepid/ordered_test
 *.swp
 *.swo
 *.pyc
