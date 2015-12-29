@@ -1,7 +1,7 @@
 import numpy as np
 import pickle
 
-clusters_number = 100
+clusters_number = 4
 features_number = 4
 points_per_cluster = 20
 std_dev = np.random.uniform(size=[clusters_number])
@@ -10,7 +10,7 @@ data = [[] for i in range(clusters_number)]
 for i in range(clusters_number):
     for j in range(points_per_cluster):
         one_hot = np.zeros([features_number])
-        one_hot[i] = 1
+        one_hot[i] = 10
         noise = np.random.normal(0, std_dev[i], features_number)
         data[i].append(one_hot+noise)
 
