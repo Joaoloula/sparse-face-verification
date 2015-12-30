@@ -20,7 +20,7 @@ With our implementation, depending on the person chosen, the model can get a bit
 
 <p align="center">
   <img src = "https://raw.githubusercontent.com/Joaoloula/sparse-face-verification/master/images/bush.jpg"/>
-  <span> Example of pair that overfits by background: there are many groups of images like this on LFW, which explains how, by overfitting to most of the possible backgrounds for each person, we managed to get such good results. </span>
+  <br><span> Example of pair that overfits by background: there are many groups of images like this on LFW, which explains how, by overfitting to most of the possible backgrounds for each person, we managed to get such (seemingly) good results. </span>
 </p>
 
 ## Siamese CNNs ##
