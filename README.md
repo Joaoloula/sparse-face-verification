@@ -42,6 +42,12 @@ We're gonna borrow the main idea from this equivalent Mahalanobis metric learnin
 
 The siamese CNN architecure was first proposed by Chopra and LeCun, and has a long history of use in face verification [2][3][4]. The idea is to train two identical CNNs that share parameters, and whose outputs are fed to an energy function that will measure how "dissimilar" they are, upon which we'll then compute our loss function. Gradient descent on this loss propagates to the two CNNs in the same way, preserving the symmetry of the problem. Notice that, by choosing our energy function to be the euclidean distance, we find ourselves with exactly the setup we described above.
 
+<p align="center">
+  <img src = "https://raw.githubusercontent.com/Joaoloula/sparse-face-verification/master/images/siamese-cnns.jpg"/>
+  <br><span> Visualization of the siamese CNN architecture. </span>
+</p>
+
+
 We'll experiment with siamese CNNs first on the [AT&T face dataset](https://www.cl.cam.ac.uk/research/dtg/attarchive/facedatabase.html) with a simple 4-layer architecture for proof of concept and to find a model that's robust to comparison of faces it has never seen before. We'll then move on to the more challenging LFW, where we'll deal with all the problems that arise from uneven positions, lighting and background. 
 
 While we do manage to get a jump in accuracy, our model suffers from the simplicity of its architecture, and doesn't seem very robust to the introduction of faces it has never seen on the dataset.
