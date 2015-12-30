@@ -1,4 +1,4 @@
-## Sparse Face Verification ##
+# Sparse Face Verification #
 
 Face verification is a classic problem in computer vision: given two pictures representing each one a face, how to determine whether they belong to the same person or not? In this project we'll take a machine learning approach and focus specifically on the case where we want to test new inputs against some subset of people of whom we have few examples in the training data (for example, in biometrics applications).
 
@@ -11,13 +11,20 @@ The next step is to fit a linear SVM model *for each positive example in the dat
 
 <p align="center">
   <img src = "https://raw.githubusercontent.com/Joaoloula/sparse-face-verification/master/images/calibration.jpg"/>
-  <span> Visualization of an exemplar SVM before (left) and after (right) calibration. </span>
+  <span> Visualization of an exemplar SVM before and after calibration. </span>
 </p>
 
-Depending on the person chosen, the model can get a bit more than 80% accuracy on [LFW dataset](http://vis-www.cs.umass.edu/lfw/), which seems really good for such a simple algorithm. This result, however, is based on false assumptions: by cropping LFW using face recognition and alignment to remove background, performance falls drastically. What is actually happening is that our model is overfitting to the background, a very current issue on LFW.  
+This way of sewing together the results from the different SVMs reduces our problems with overfitting, the elephant in the room whenever we're talking about learning from few examples.
+
+With our implementation, depending on the person chosen, the model can get a bit more than 80% accuracy on [LFW dataset](http://vis-www.cs.umass.edu/lfw/), which seems really good for such a simple algorithm. This result, however, is based on false assumptions: by cropping LFW using face recognition and alignment to remove background, performance falls drastically. This seems to be a common issue on LFW: our model is overfitting to the background, as it's very susceptible to do so.
+
+<p align="center">
+  <img src = "https://raw.githubusercontent.com/Joaoloula/sparse-face-verification/master/images/bush.jpg"/>
+  <span> Example of pair that overfits by background: there are many groups of images like this on LFW, which explains how, by overfitting to most of the possible backgrounds for each person, we managed to get such good results. </span>
+</p>
 
 ## Siamese CNNs ##
-So, that didn't work as well as we wanted. Let's think harder about our problem then: what we're trying to do is find a representation of our data such that intrapersonal distances (differente pictures of the same person) are small and interpersonal distances (pictures of different people) are big. This can be thought of as finding a symmetric positive definite matrix M such that the distance defined by:
+So, that didn't work as well as we hoped. Let's think harder about our problem then: what we're trying to do is find a representation of our data such that intrapersonal distances (differente pictures of the same person) are small and interpersonal distances (pictures of different people) are big. In the linear case, this can be thought of as finding a symmetric positive definite matrix M such that the distance defined by:
 
 <p align="center">
   <img src = "https://raw.githubusercontent.com/Joaoloula/sparse-face-verification/master/images/Mahalanobis.jpg"/>
