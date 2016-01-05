@@ -16,12 +16,13 @@ The next step is to fit a linear SVM model *for each positive example in the dat
 
 This way of sewing together the results from the different SVMs reduces our problems with overfitting, the elephant in the room whenever we're talking about learning from few examples.
 
-With our implementation, depending on the person chosen, the model can get a bit more than 80% accuracy on [LFW dataset](http://vis-www.cs.umass.edu/lfw/), which seems really good for such a simple algorithm. This result, however, is based on false assumptions: by cropping LFW using face recognition and alignment to remove background, performance falls drastically. This seems to be a common issue on LFW: our model is overfitting to the background, as it's very susceptible to do so.
+With our implementation, depending on the person chosen, the model can get a bit more than 80% accuracy on [LFW dataset](http://vis-www.cs.umass.edu/lfw/), which seems really good for such a simple algorithm. This result, however, is based on false assumptions: by cropping LFW using face recognition and alignment to remove background, performance falls drastically. This seems to be a common issue on LFW: our model is overfitting to the background, as it's very susceptible to do so, and it's not rich enough to capture the nuances of the feature space; tinkering with different descriptors doesn't seem to help either.
 
 <p align="center">
   <img src = "https://raw.githubusercontent.com/Joaoloula/sparse-face-verification/master/images/bush.jpg"/>
   <br><span> Example of pair that overfits by background: there are many groups of images like this on LFW, which explains how, by overfitting to most of the possible backgrounds for each person, we managed to get such (seemingly) good results. </span>
 </p>
+
 
 ## Siamese CNNs ##
 So, that didn't work as well as we hoped. Let's think harder about our problem then: what we're trying to do is find a representation of our data such that intrapersonal distances (differente pictures of the same person) are small and interpersonal distances (pictures of different people) are big. In the linear case, this can be thought of as finding a symmetric positive definite matrix M such that the distance defined by:
@@ -40,7 +41,7 @@ That is, the Euclidean distance calculated between the application of W to our t
 
 We're gonna borrow the main idea from this equivalent Mahalanobis metric learning problem, namely finding a transformation W such that the associated distance has the properties of low intrapersonal distance and high interpersonal distance. We are not, however, going to limit our search to the linear transformation space: face data has a very complicated structure, and it's mostly thought that it lies upon a high-dimensional manifold: we'll be in trouble if we try to navigate through it linearly. How, then, can we learn a non-linear transformation that captures the subtleties of this space all the while preserving the symmetry of the problem? That's where siamese convolutional neural networks come in.
 
-The siamese CNN architecure was first proposed by Chopra and LeCun, and has a long history of use in face verification [2][3][4]. The idea is to train two identical CNNs that share parameters, and whose outputs are fed to an energy function that will measure how "dissimilar" they are, upon which we'll then compute our loss function. Gradient descent on this loss propagates to the two CNNs in the same way, preserving the symmetry of the problem. Notice that, by choosing our energy function to be the euclidean distance, we find ourselves with exactly the setup we described above.
+The siamese CNN architecure was first proposed by Chopra and LeCun, and has a long history of use in face verification [2][3]. The idea is to train two identical CNNs that share parameters, and whose outputs are fed to an energy function that will measure how "dissimilar" they are, upon which we'll then compute our loss function. Gradient descent on this loss propagates to the two CNNs in the same way, preserving the symmetry of the problem. Notice that, by choosing our energy function to be the euclidean distance, we find ourselves with exactly the setup we described above.
 
 <p align="center">
   <img src = "https://raw.githubusercontent.com/Joaoloula/sparse-face-verification/master/images/siamese-cnns.jpg"/>
@@ -58,13 +59,35 @@ That was better, but we're not quite there yet. In mathematics, when facing a ha
 
 The jump from verification to identification can certainly be quite troublesome: in our earlier example of biometrics, to prevent the entrance of undesired people, the owner of the system would ideally have to train his algorithm to recognize all seven billion people on earth! Far from this naïve approach, however, lies an interesting connection that makes the exploration of this harder problem worthwhile for us: both problems are based on the recognition of facial features, so we'd hope that training a neural network to perform the hard problem of identification would give us very good descriptors for verification. That is the core idea behind DeepID, a state-of-the-art algorithm for face verification.
 
-DeepID made quite the fuss on CVPR14 [5] by getting better benchmarks on LFW than DeepFace, Facebook team's method that had by far the best results ever seen on the challenging dataset: the apparently crazy idea of trying to predict 10,000 classes for the same number of different people worked incredibly well.
-
-This still leaves us with the problem of what algorithm to use for the verification task after removing the final layer on the CNN. With great methods comes great responsibility, and so we'll choose something fancy so as to get the best out of DeepID: we'll implement what's called a joint-bayesian model.
-
-Joint-bayesian models operate on our earlier framing of inter and intra-class distances. What we do now, however, is suppose that the class centers mu as well as the intra class variations epsilon follow the both of them a centered gaussian distribution, whose parameters we'll try to infer from the data. 
+DeepID made quite the fuss on CVPR14 [4] by getting better benchmarks on LFW than DeepFace, Facebook team's method that had by far the best results ever seen on the challenging dataset: the apparently crazy idea of trying to predict 10,000 classes for the same number of different people worked incredibly well.
 
 DeepID is not made for training on LFW: there are too few examples per person to achieve satisfactory results. Instead, we are going to use the [FaceScrub dataset](http://vintage.winklerbros.net/facescrub.html), that consists of 100,000 images of about 500 people. By training our CNN architecture to recognize these people, we'll get descriptors that we'll then apply to the verification problem on LFW.
+
+## Joint Bayesian ##
+
+This still leaves us with the problem of what algorithm to use for the verification task after removing the final layer in the CNN in DeepID. With great methods comes great responsibility, and though we *could* just put an SVM on top of our descriptors, it would be a shame to not take advantage of the richness of features that DeepID gives us. That's why we'll go for a fancier algorithm, and implement what's called a joint-bayesian model.
+
+Joint-bayesian models [5] operate on our earlier framing of inter and intra-class distances. What we do now, however, is suppose that the class centers mu as well as the intra-class variations epsilon both follow a centered gaussian distributions, whose covariance matrices are the objects we're trying to infer from the data. 
+
+<p align="center">
+  <img src = "https://raw.githubusercontent.com/Joaoloula/sparse-face-verification/master/images/joint-bayesian.jpg"/>
+</p>
+
+Given two observations x1 and x2, if we call HI the hypothesis that they represent the face of the same person and HE the hypothesis that they come from different people, we can easily see that under HI, x1 and x2 share the same class center and have independent intra-class variation, while under HE, both their class center and intra-class variation are independent. This leads us to the conclusion that the covariance between x1 and x2 under HI and HE are respectively:
+
+<p align="center">
+  <img src = "https://raw.githubusercontent.com/Joaoloula/sparse-face-verification/master/images/joint-bayesian-covariance.jpg"/>
+</p>
+
+That will allow us to find a nice expression for the log-likelihood ratio between the two hypothesis:
+
+<p align="center">
+  <img src = "https://raw.githubusercontent.com/Joaoloula/sparse-face-verification/master/images/joint-bayesian-log-likelihood.jpg"/>
+</p>
+
+We'll learn the covariance matrices jointly through Expectation-Maximization (EM), an algorithm for estimating the maximum likelihood parameter in a latent variable model through iteration of an E-step, in which we compute the distribution of the latent variables using our previous guess for the parameter, and an M-step, in which we update the parameter so as to maximize the joint distribution likelihood (for more on EM, some great notes can be found [here](http://cs229.stanford.edu/notes/cs229-notes8.pdf)).
+
+## References ##
 
 [1] https://www.cs.cmu.edu/~tmalisie/projects/iccv11/exemplarsvm-iccv11.pdf
 
@@ -72,6 +95,6 @@ DeepID is not made for training on LFW: there are too few examples per person to
 
 [3] http://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=6903759
 
-[4] http://arxiv.org/pdf/1406.4773v1.pdf
+[4] http://mmlab.ie.cuhk.edu.hk/pdf/YiSun_CVPR14.pdf
 
-[5] http://mmlab.ie.cuhk.edu.hk/pdf/YiSun_CVPR14.pdf
+[5] http://research.microsoft.com/en-us/um/people/jiansun/papers/ECCV12_BayesianFace.pdf
