@@ -1,6 +1,6 @@
 # Sparse Face Verification #
 
-Face verification is a classic problem in computer vision: given two pictures representing each one a face, how to determine whether they belong to the same person or not? In this project we'll take a machine learning approach and focus specifically on the case where we want to test new inputs against some subset of people of whom we have few examples in the training data (for example, in biometrics applications).
+Face verification is a classic problem in computer vision: given two pictures representing each one a face, how to determine whether they belong to the same person or not? In this project we'll take a machine learning approach and focus specifically on the case where we want to test new inputs against some subset of people of whom we have few examples in the training data (for example, in biometrics applications). The Exemplar SVM model will be implemented in MATLAB, for all the neural network ones, we'll use Tensorflow python API.
 
 ## Exemplar SVMs ##
 Our first approach is based on a method first introduced in 2011 by Malisiewicz et al.[1]: Exemplar SVMs. The idea is to train one linear SVM classifier for each exemplar in the training set, so that we end up with one positive instance and lots of negatives ones. Surprisingly, this very simple idea works really well, getting results close to the state of the art at the PASCAL VOC object classification dataset at the time. 
